@@ -1,0 +1,132 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Golden Transcript",
+  "description": "Pre-recorded sequence of API responses for deterministic agent benchmarking",
+  "type": "object",
+  "required": ["version", "description", "targetProject", "systemPrompt", "userPrompt", "steps"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Transcript format version"
+    },
+    "description": {
+      "type": "string",
+      "description": "Human-readable description of what this transcript does"
+    },
+    "targetProject": {
+      "type": "object",
+      "required": ["seed", "totalBugs"],
+      "properties": {
+        "seed": {
+          "type": "integer",
+          "description": "PRNG seed used to generate the target project"
+        },
+        "totalBugs": {
+          "type": "integer",
+          "description": "Number of bugs planted in the target project"
+        }
+      }
+    },
+    "systemPrompt": {
+      "type": "string",
+      "description": "System prompt template (use {PROJECT_PATH} as placeholder)"
+    },
+    "userPrompt": {
+      "type": "string",
+      "description": "Initial user message to kick off the agent"
+    },
+    "steps": {
+      "type": "array",
+      "description": "Ordered sequence of API responses to replay",
+      "items": {
+        "type": "object",
+        "required": ["stepNumber", "response"],
+        "properties": {
+          "stepNumber": {
+            "type": "integer",
+            "description": "1-indexed step number"
+          },
+          "description": {
+            "type": "string",
+            "description": "Human-readable description of what this step does"
+          },
+          "response": {
+            "type": "object",
+            "description": "Full OpenAI-compatible chat completion response",
+            "required": ["choices"],
+            "properties": {
+              "id": { "type": "string" },
+              "object": { "type": "string", "const": "chat.completion" },
+              "created": { "type": "integer" },
+              "model": { "type": "string" },
+              "choices": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["index", "message", "finish_reason"],
+                  "properties": {
+                    "index": { "type": "integer" },
+                    "message": {
+                      "type": "object",
+                      "required": ["role"],
+                      "properties": {
+                        "role": { "type": "string", "const": "assistant" },
+                        "content": { "type": ["string", "null"] },
+                        "tool_calls": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": ["id", "type", "function"],
+                            "properties": {
+                              "id": { "type": "string" },
+                              "type": { "type": "string", "const": "function" },
+                              "function": {
+                                "type": "object",
+                                "required": ["name", "arguments"],
+                                "properties": {
+                                  "name": { "type": "string" },
+                                  "arguments": { "type": "string" }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "finish_reason": {
+                      "type": "string",
+                      "enum": ["stop", "tool_calls"]
+                    }
+                  }
+                }
+              },
+              "usage": {
+                "type": "object",
+                "properties": {
+                  "prompt_tokens": { "type": "integer" },
+                  "completion_tokens": { "type": "integer" },
+                  "total_tokens": { "type": "integer" }
+                }
+              }
+            }
+          },
+          "expectedToolResults": {
+            "type": "array",
+            "description": "Optional validation patterns for tool execution results",
+            "items": {
+              "type": "object",
+              "required": ["toolCallId"],
+              "properties": {
+                "toolCallId": { "type": "string" },
+                "contentPattern": {
+                  "type": "string",
+                  "description": "Regex pattern the tool result should match"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

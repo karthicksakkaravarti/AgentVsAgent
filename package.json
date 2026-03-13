@@ -1,0 +1,27 @@
+{
+  "name": "agent-vs-agent",
+  "version": "1.0.0",
+  "description": "Benchmark platform for testing agentic AI framework performance across programming languages",
+  "private": true,
+  "workspaces": [
+    "mock-api",
+    "target-project/generator",
+    "benchmark",
+    "agents/javascript"
+  ],
+  "scripts": {
+    "generate": "npm run build --workspace=target-project/generator && npm run start --workspace=target-project/generator",
+    "mock-api": "npm run start --workspace=mock-api",
+    "mock-api:dev": "npm run dev --workspace=mock-api",
+    "agent:js": "npm run start --workspace=agents/javascript",
+    "agent:py": "cd agents/python && python src/main.py",
+    "agent:go": "cd agents/go && go run cmd/agent/main.go",
+    "agent:rust": "cd agents/rust && cargo run --release",
+    "benchmark": "npm run start --workspace=benchmark",
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

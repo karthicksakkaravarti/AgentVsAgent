@@ -1,0 +1,22 @@
+{
+  "name": "mock-api",
+  "version": "1.0.0",
+  "description": "Mock LLM API server that replays golden transcript with fixed response delays",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts"
+  },
+  "dependencies": {
+    "express": "^4.18.0",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "@types/node": "^20.11.0",
+    "@types/express": "^4.17.21",
+    "@types/uuid": "^9.0.7",
+    "ts-node": "^10.9.0"
+  }
+}

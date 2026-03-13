@@ -1,0 +1,20 @@
+{
+  "name": "target-project-generator",
+  "version": "1.0.0",
+  "description": "Generates the deterministic target project with planted bugs for benchmarking",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts"
+  },
+  "dependencies": {
+    "seedrandom": "^3.0.5"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "@types/node": "^20.11.0",
+    "@types/seedrandom": "^3.0.8",
+    "ts-node": "^10.9.0"
+  }
+}

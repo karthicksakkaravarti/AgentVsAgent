@@ -1,0 +1,36 @@
+node_modules/
+dist/
+build/
+*.js.map
+
+# Generated target project (regenerate with `npm run generate`)
+target-project/generated/
+
+# Benchmark results (except .gitkeep)
+benchmark/results/*.json
+
+# Go
+agents/go/bin/
+
+# Rust
+agents/rust/target/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local

@@ -1,0 +1,10 @@
+[project]
+name = "agent-python"
+version = "1.0.0"
+description = "Python agent implementation for Agent vs Agent benchmark"
+requires-python = ">=3.11"
+dependencies = []
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.backends._legacy:_Backend"
