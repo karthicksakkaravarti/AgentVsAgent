@@ -11,12 +11,15 @@
   ],
   "scripts": {
     "generate": "npm run build --workspace=target-project/generator && npm run start --workspace=target-project/generator",
+    "transcript": "node golden-transcript/generate-transcript.js",
+    "setup": "npm run generate && npm run transcript",
     "mock-api": "npm run start --workspace=mock-api",
     "mock-api:dev": "npm run dev --workspace=mock-api",
     "agent:js": "npm run start --workspace=agents/javascript",
     "agent:py": "cd agents/python && python src/main.py",
     "agent:go": "cd agents/go && go run cmd/agent/main.go",
     "agent:rust": "cd agents/rust && cargo run --release",
+    "agent:c": "cd agents/c && make -s && ./bin/agent",
     "benchmark": "npm run start --workspace=benchmark",
     "build": "npm run build --workspaces --if-present",
     "test": "npm run test --workspaces --if-present"

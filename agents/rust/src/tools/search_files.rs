@@ -1,8 +1,11 @@
+use ignore::{WalkBuilder, WalkState};
 use regex::Regex;
 use std::collections::HashMap;
-use std::fs;
+use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::{mpsc, Arc};
 
 pub fn search_files(args: &HashMap<String, serde_json::Value>, project_path: &str) -> String {
     let pattern = args.get("pattern").and_then(|v| v.as_str()).unwrap_or("");
@@ -15,82 +18,113 @@ pub fn search_files(args: &HashMap<String, serde_json::Value>, project_path: &st
         Err(e) => return format!("Error: Invalid regex: {}", e),
     };
 
-    let full_path = Path::new(project_path).join(search_path);
-    let mut matches = Vec::new();
+    let include_regex = include.and_then(|g| Regex::new(&glob_to_regex(g)).ok());
 
-    let include_regex = include.and_then(|g| {
-        let re_str = glob_to_regex(g);
-        Regex::new(&re_str).ok()
+    let full_path = Path::new(project_path).join(search_path);
+
+    // Channel to collect matches asynchronously from all worker threads
+    let (tx, rx) = mpsc::channel();
+    
+    // Thread-safe atomic counter for early exit across all threads
+    let match_count = Arc::new(AtomicUsize::new(0));
+
+    // Initialize the parallel walker
+    let walker = WalkBuilder::new(&full_path)
+        .hidden(true)      // Respect hidden files
+        .ignore(true)      // Respect .ignore files
+        .git_ignore(true)  // Respect .gitignore files (skips node_modules natively)
+        .build_parallel();
+
+    let project_path_str = project_path.to_string(); 
+
+    // Execute multi-threaded traversal
+    walker.run(|| {
+        // --- This block runs ONCE PER THREAD during thread startup ---
+        
+        let tx = tx.clone();
+        let match_count = Arc::clone(&match_count);
+        let regex = regex.clone(); 
+        let include_regex = include_regex.clone();
+        let project_path_str = project_path_str.clone();
+        
+        // Allocate ONE reusable buffer per thread to eliminate per-line string allocations
+        let mut line_buffer = String::new();
+
+        Box::new(move |result| {
+            // --- This block runs FOR EVERY FILE encountered by this thread ---
+            
+            // Fast early exit: if another thread hit the max, stop walking immediately
+            if match_count.load(Ordering::Relaxed) >= max_results {
+                return WalkState::Quit;
+            }
+
+            let entry = match result {
+                Ok(e) => e,
+                Err(_) => return WalkState::Continue, // Skip unreadable paths safely
+            };
+
+            let path = entry.path();
+            if !path.is_file() {
+                return WalkState::Continue; // Only process actual files
+            }
+
+            let name = entry.file_name().to_string_lossy();
+
+            // Check include glob/regex
+            if let Some(ref inc) = include_regex {
+                if !inc.is_match(&name) {
+                    return WalkState::Continue;
+                }
+            }
+
+            // Read the file efficiently
+            if let Ok(file) = File::open(path) {
+                let mut reader = BufReader::new(file);
+                let rel_path = path.strip_prefix(Path::new(&project_path_str)).unwrap_or(path);
+                let mut line_num = 1;
+
+                loop {
+                    line_buffer.clear(); // Clear memory but retain allocated capacity
+                    match reader.read_line(&mut line_buffer) {
+                        Ok(0) => break, // EOF
+                        Ok(_) => {
+                            if regex.is_match(&line_buffer) {
+                                // Increment atomic counter. If we are under max, format and send
+                                let current_count = match_count.fetch_add(1, Ordering::Relaxed);
+                                if current_count < max_results {
+                                    let match_str = format!(
+                                        "{}:{}: {}",
+                                        rel_path.display(),
+                                        line_num,
+                                        line_buffer.trim_end() 
+                                    );
+                                    let _ = tx.send(match_str);
+                                } else {
+                                    return WalkState::Quit;
+                                }
+                            }
+                        }
+                        Err(_) => break, // Gracefully handle non-UTF8/binary read errors
+                    }
+                    line_num += 1;
+                }
+            }
+
+            WalkState::Continue
+        })
     });
 
-    walk_and_search(&full_path, &regex, &include_regex, project_path, &mut matches, max_results);
+    // Drop the initial sender so the channel knows all worker threads are done
+    drop(tx);
+
+    // Collect all matches received from the threads
+    let matches: Vec<String> = rx.into_iter().collect();
 
     if matches.is_empty() {
         return format!("No matches found for pattern \"{}\" in {}", pattern, search_path);
     }
 
     matches.join("\n")
-}
-
-fn walk_and_search(
-    dir: &Path,
-    regex: &Regex,
-    include_regex: &Option<Regex>,
-    project_root: &str,
-    matches: &mut Vec<String>,
-    max_results: usize,
-) {
-    if matches.len() >= max_results {
-        return;
-    }
-
-    let entries = match fs::read_dir(dir) {
-        Ok(e) => e,
-        Err(_) => return,
-    };
-
-    for entry in entries.flatten() {
-        if matches.len() >= max_results {
-            return;
-        }
-
-        let path = entry.path();
-        let name = entry.file_name().to_string_lossy().to_string();
-
-        if path.is_dir() {
-            if name == "node_modules" || name == ".git" {
-                continue;
-            }
-            walk_and_search(&path, regex, include_regex, project_root, matches, max_results);
-        } else if path.is_file() {
-            if let Some(ref inc) = include_regex {
-                if !inc.is_match(&name) {
-                    continue;
-                }
-            }
-
-            if let Ok(file) = fs::File::open(&path) {
-                let reader = BufReader::new(file);
-                let rel_path = path.strip_prefix(project_root).unwrap_or(&path);
-
-                for (line_num, line) in reader.lines().enumerate() {
-                    if matches.len() >= max_results {
-                        return;
-                    }
-                    if let Ok(line) = line {
-                        if regex.is_match(&line) {
-                            matches.push(format!(
-                                "{}:{}: {}",
-                                rel_path.display(),
-                                line_num + 1,
-                                line.trim()
-                            ));
-                        }
-                    }
-                }
-            }
-        }
-    }
 }
 
 fn glob_to_regex(glob: &str) -> String {

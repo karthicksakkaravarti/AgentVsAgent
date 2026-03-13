@@ -31,7 +31,7 @@ const ROOT = path.resolve(__dirname, '..', '..');
 
 const DEFAULT_CONFIG: BenchmarkConfig = {
   mockApiPort: 8080,
-  responseDelayMs: 500,
+  responseDelayMs: 0,
   projectPath: path.join(ROOT, 'target-project', 'generated'),
   manifestPath: path.join(ROOT, 'target-project', 'manifest.json'),
   transcriptPath: path.join(ROOT, 'golden-transcript', 'transcript.json'),
@@ -58,6 +58,12 @@ const DEFAULT_CONFIG: BenchmarkConfig = {
       buildCommand: 'cargo build --release',
       runCommand: './target/release/agent-rust',
       cwd: path.join(ROOT, 'agents', 'rust'),
+    },
+    {
+      name: 'c',
+      buildCommand: 'make -s',
+      runCommand: './bin/agent',
+      cwd: path.join(ROOT, 'agents', 'c'),
     },
   ],
 };

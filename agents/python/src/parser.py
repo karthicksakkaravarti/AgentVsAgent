@@ -10,7 +10,7 @@ Benchmarks: JSON deserialization, deeply nested object traversal.
 from __future__ import annotations
 import json
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Union
 
 
 @dataclass
@@ -32,7 +32,7 @@ class ErrorResult:
     message: str = ""
 
 
-ParseResult = ToolCallResult | FinalAnswerResult | ErrorResult
+ParseResult = Union[ToolCallResult, FinalAnswerResult, ErrorResult]
 
 
 def parse_response(response_body: str) -> ParseResult:

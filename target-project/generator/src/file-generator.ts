@@ -143,11 +143,11 @@ function generateTestFile(outputDir: string, index: number, rng: SeededRandom): 
 
 function generateModuleContent(modulePath: string, index: number, rng: SeededRandom): string {
   const className = rng.pascalCase();
-  const methodCount = rng.int(3, 8);
+  const methodCount = rng.int(8, 15);
   const lines: string[] = [];
 
   // Imports
-  const importCount = rng.int(2, 6);
+  const importCount = rng.int(4, 10);
   for (let i = 0; i < importCount; i++) {
     const importName = rng.pascalCase();
     lines.push(`import { ${importName} } from '../${rng.identifier(5)}';`);
@@ -157,7 +157,7 @@ function generateModuleContent(modulePath: string, index: number, rng: SeededRan
   // Interface
   const interfaceName = `I${className}`;
   lines.push(`export interface ${interfaceName} {`);
-  const propCount = rng.int(3, 8);
+  const propCount = rng.int(6, 14);
   const types = ['string', 'number', 'boolean', 'Date', 'string[]', 'Record<string, unknown>'];
   for (let i = 0; i < propCount; i++) {
     lines.push(`  ${rng.camelCase()}: ${rng.pick(types)};`);
@@ -198,7 +198,7 @@ function generateModuleContent(modulePath: string, index: number, rng: SeededRan
     lines.push(`  ${m === 0 ? 'async ' : ''}${methodName}(${params.join(', ')}): ${m === 0 ? 'Promise<' + returnType + '>' : returnType} {`);
 
     // Method body - generate some plausible logic
-    const bodyLines = rng.int(5, 25);
+    const bodyLines = rng.int(15, 50);
     for (let b = 0; b < bodyLines; b++) {
       lines.push(`    ${generateStatementLine(rng)}`);
     }
@@ -210,11 +210,24 @@ function generateModuleContent(modulePath: string, index: number, rng: SeededRan
   lines.push('}');
   lines.push('');
 
-  // Helper function
+  // Helper function 1: validate
   lines.push(`function validate${className}(input: unknown): input is ${interfaceName} {`);
   lines.push(`  if (typeof input !== 'object' || input === null) return false;`);
   lines.push(`  const obj = input as Record<string, unknown>;`);
   lines.push(`  return typeof obj['id'] === 'string';`);
+  lines.push('}');
+  lines.push('');
+
+  // Helper function 2: transform
+  lines.push(`function transform${className}(data: ${interfaceName}[]): Record<string, ${interfaceName}> {`);
+  lines.push(`  const result: Record<string, ${interfaceName}> = {};`);
+  lines.push(`  for (const item of data) {`);
+  lines.push(`    if (item && typeof item === 'object') {`);
+  lines.push(`      const key = (item as any).id || Math.random().toString(36);`);
+  lines.push(`      result[key] = item;`);
+  lines.push(`    }`);
+  lines.push(`  }`);
+  lines.push(`  return result;`);
   lines.push('}');
   lines.push('');
 

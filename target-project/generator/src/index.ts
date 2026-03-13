@@ -38,7 +38,7 @@ async function main(): Promise<void> {
   const configCount = generateConfigs(OUTPUT_DIR, rng);
 
   // Step 4: Inject bugs
-  console.log('[4/5] Injecting 15 bugs...');
+  console.log('[4/5] Injecting 50 bugs...');
   const bugs = injectBugs(OUTPUT_DIR, files, rng);
 
   // Step 5: Generate logs (must happen after bug injection to include bug-related log patterns)

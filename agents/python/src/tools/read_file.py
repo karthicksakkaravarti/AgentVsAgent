@@ -1,7 +1,8 @@
 """Tool: read_file — read file contents with optional line range."""
+from __future__ import annotations
 
 import os
-from typing import Any
+from typing import Any, Optional
 
 
 def read_file(args: dict[str, Any], project_path: str) -> str:
@@ -36,7 +37,7 @@ def read_file(args: dict[str, Any], project_path: str) -> str:
     return "\n".join(f"{i + 1}: {line.rstrip()}" for i, line in enumerate(lines))
 
 
-def _read_range(full_path: str, start_line: int | None, end_line: int | None) -> str:
+def _read_range(full_path: str, start_line: Optional[int], end_line: Optional[int]) -> str:
     start = start_line or 1
     end = end_line or float("inf")
     result: list[str] = []

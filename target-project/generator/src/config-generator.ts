@@ -15,8 +15,11 @@ export function generateConfigs(outputDir: string, rng: SeededRandom): number {
 
   for (const env of environments) {
     for (const configType of configTypes) {
-      // Skip configs that bug-injector will create for production
-      if (env === 'production' && ['database', 'cache', 'api-gateway'].includes(configType)) {
+      // Skip configs that bug-injector will create
+      if (env === 'production' && ['database', 'cache', 'api-gateway', 'logging', 'security', 'messaging'].includes(configType)) {
+        continue;
+      }
+      if (env === 'staging' && ['database', 'cache', 'api-gateway', 'logging'].includes(configType)) {
         continue;
       }
 

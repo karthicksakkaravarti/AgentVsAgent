@@ -6,14 +6,18 @@ build/
 # Generated target project (regenerate with `npm run generate`)
 target-project/generated/
 
-# Benchmark results (except .gitkeep)
-benchmark/results/*.json
+# Benchmark (local only)
+benchmark/
 
 # Go
 agents/go/bin/
 
 # Rust
 agents/rust/target/
+
+# C
+agents/c/bin/
+agents/c/**/*.o
 
 # Python
 __pycache__/
